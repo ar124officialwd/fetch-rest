@@ -1,0 +1,49 @@
+{
+  "name": "fetch-rest",
+  "version": "0.0.4",
+  "description": "A simple REST client - wrapper over fetch - for making HTTP requests with rest",
+  "type": "module",
+  "source": "src/index.ts",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "vitest",
+    "coverage": "vitest run --coverage",
+    "watch": "parcel watch",
+    "build": "parcel build",
+    "check": "tsc --noEmit",
+    "gen:docs": "typedoc --entryPoints src/index.ts --out docs",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "fetch",
+    "rest",
+    "http",
+    "client"
+  ],
+  "author": "Ahmad Raza <pro.se.ahmad.raza.1@gmail.com>",
+  "license": "MIT",
+  "packageManager": "pnpm@10.13.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ar124officialwd/fetch-rest.git"
+  },
+  "homepage": "https://github.com/ar124officialwd/fetch-rest.git",
+  "devDependencies": {
+    "@biomejs/biome": "2.1.2",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@parcel/bundler-library": "^2.15.4",
+    "@parcel/config-default": "^2.15.4",
+    "@parcel/packager-ts": "2.15.4",
+    "@parcel/transformer-typescript-types": "2.15.4",
+    "@types/node": "^24.1.0",
+    "@vitest/coverage-v8": "3.2.4",
+    "husky": "^9.1.7",
+    "parcel": "^2.15.4",
+    "typedoc": "^0.28.7",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
