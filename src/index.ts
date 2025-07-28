@@ -387,7 +387,7 @@ export class FetchRest {
 
 		const queryString = query
 			? Object.entries(query)
-					.filter(([, v]) => v !== undefined)
+					.filter(([, v]) => v)
 					.flatMap(([k, v]) =>
 						Array.isArray(v)
 							? v.map(
