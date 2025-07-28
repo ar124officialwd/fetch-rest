@@ -91,9 +91,9 @@ So it is important to understand the precedence of these options. Here is how di
 It is always set directly by `FetchRest`, based on Request Method you pass to `.request` or if you use convinience methods (`.get` etc).
 #### `headers`
 They're merged from instance options, request call options and fetch rest options.
-##### `Authorization`
-If you set JWT token, by using `.setJWTToken` method, it will be set as `Authorization` header. Otherwise, it may or may not be present depending on whether it is present in instance options or request call options.
-##### `CONTENT_TYPE`
+##### `headers.AUTHORIZATION`
+If you set JWT token, by using `.setJwtToken` method, it will be set as `Authorization` header. Otherwise, it may or may not be present depending on whether it is present in instance options or request call options.
+##### `headers.CONTENT_TYPE`
 It is set directly by `FetchRest`, based on Request Method and Request Body (Payload).
 
 #### `body`
