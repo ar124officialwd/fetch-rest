@@ -55,10 +55,6 @@ api.set401Handler(() => {
   window.location.href = '/login'; // so whenever a request fails with a 401 status code - it takes user to login page. REST
 })
 
-api.set404Handler(() => {
-  window.location.href = '/404';
-})
-
 // use
 api.get<APIUser>('/users').then((response) => {
   console.log(response.data);
