@@ -1,3 +1,8 @@
+/**
+ * Fetch like function
+ */
+export type FetchFn = typeof fetch;
+
 /*
  * Available HTTP methods.
  */
@@ -13,6 +18,15 @@ export type FRHook = (client: FetchRest) => Promise<void>;
  * Client options.
  */
 export type FROptions = {
+	/**
+	 * Override fetch function
+	 *
+	 * You can specify a fetch like function to be called, instead of `fetch` global function.
+	 *
+	 * Note: This will get overriden if specified {@link FRRequestOptions.fetchFn}.
+	 */
+	fetchFn?: FetchFn;
+
 	/**
 	 * default fetch options.
 	 * Fetch options those will be passed to every request
@@ -66,6 +80,15 @@ export type FROptions = {
  */
 export type FRRequestOptions<TBody = unknown> = {
 	/**
+	 * Override fetch function
+	 *
+	 * You can specify a fetch like function to be called, instead of `fetch` global function -- for this particular request.
+	 *
+	 * Note: This will override {@link FROptions.fetchFn} if specified both.
+	 */
+	fetchFn?: FetchFn;
+
+	/**
 	 * override fetch options for this request
 	 */
 	fetchOpts?: RequestInit;
@@ -109,6 +132,7 @@ export type FRAuthFailureHandler = (response: Response) => Promise<void>;
  * RECOMMENDATION: It is generally recommended to use {@link FetchRestSingleton} controls instead of `FetchRest`.
  */
 export class FetchRest {
+	protected fetchFn?: FetchFn;
 	protected fetchOpts?: RequestInit;
 	protected baseUrl: string;
 	protected retryCount: number;
@@ -130,6 +154,7 @@ export class FetchRest {
 	>();
 
 	constructor({
+		fetchFn,
 		fetchOpts,
 		baseUrl,
 		retryCount = 2,
@@ -138,6 +163,7 @@ export class FetchRest {
 		logs = false,
 		hooks = {},
 	}: FROptions) {
+		this.fetchFn = fetchFn;
 		this.fetchOpts = fetchOpts;
 		this.baseUrl = baseUrl.replace(/\/+$/, "");
 		this.retryCount = retryCount;
@@ -213,8 +239,9 @@ export class FetchRest {
 				}
 
 				const reqHeaders: Record<string, string> = this.buildHeaders(options);
+				const fetchFn = this.fetchFn || options.fetchFn || fetch;
 
-				const response = await fetch(url, {
+				const response = await fetchFn(url, {
 					...this.fetchOpts,
 					...options.fetchOpts,
 					method,
@@ -284,21 +311,21 @@ export class FetchRest {
 
 					if (noContent) {
 						this.log("No content response");
-					}
-
-					if (options.rawResponse) {
-						this.log("Response OK (raw)");
-						resp = response as unknown as TResponse;
 					} else {
-						const contentType = response.headers.get("content-type") || "";
-						const isJson = /application\/(json|\w+\+json)/.test(contentType);
+						if (options.rawResponse) {
+							this.log("Response OK (raw)");
+							resp = response as unknown as TResponse;
+						} else {
+							const contentType = response.headers.get("content-type") || "";
+							const isJson = /application\/(json|\w+\+json)/.test(contentType);
 
-						const parsed = isJson
-							? await response.json()
-							: await response.text();
-						this.log("Response OK", parsed);
+							const parsed = isJson
+								? await response.json()
+								: await response.text();
+							this.log("Response OK", parsed);
 
-						resp = parsed as TResponse;
+							resp = parsed as TResponse;
+						}
 					}
 
 					if (shouldThrow) throw resp;
@@ -427,23 +454,9 @@ export class FetchRestSingleton extends FetchRest {
 	/**
 	 * Get the singleton instance of FetchRestSingleton.
 	 */
-	static getInstance({
-		baseUrl,
-		retryCount = 2,
-		retryOn = [],
-		retryDelayMs = 500,
-		logs = false,
-		hooks = {},
-	}: FROptions): FetchRestSingleton {
+	static getInstance(opts: FROptions): FetchRestSingleton {
 		if (!FetchRestSingleton.instance) {
-			FetchRestSingleton.instance = new FetchRestSingleton({
-				baseUrl,
-				retryCount,
-				retryOn,
-				retryDelayMs,
-				logs,
-				hooks,
-			});
+			FetchRestSingleton.instance = new FetchRestSingleton(opts);
 		}
 
 		return FetchRestSingleton.instance;

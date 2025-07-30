@@ -30,6 +30,7 @@
     "url": "https://github.com/ar124officialwd/fetrest.git"
   },
   "homepage": "https://github.com/ar124officialwd/fetrest.git",
+  "sideEffects": false,
   "devDependencies": {
     "@biomejs/biome": "2.1.2",
     "@commitlint/cli": "^19.8.1",

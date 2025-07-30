@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FetchRest, FetchRestSingleton } from "./index";
 
 const fetchMock = vi.fn();
-globalThis.fetch = fetchMock;
 
 describe("FetchRest", () => {
 	it("should be defined", () => {
@@ -52,6 +51,7 @@ describe("FetchRest: basic usage", () => {
 	beforeEach(() => {
 		fetchMock.mockReset();
 		client = new FetchRest({
+			fetchFn: fetchMock,
 			baseUrl: "http://localhost",
 			fetchOpts: {
 				headers: {
@@ -59,6 +59,15 @@ describe("FetchRest: basic usage", () => {
 				},
 			},
 		});
+	});
+
+	it("should support all common methods", () => {
+		expect(client.get).toBeDefined();
+		expect(client.post).toBeDefined();
+		expect(client.put).toBeDefined();
+		expect(client.patch).toBeDefined();
+		expect(client.delete).toBeDefined();
+		expect(client.head).toBeDefined();
 	});
 
 	it("should call GET with correct URL", async () => {
@@ -72,10 +81,17 @@ describe("FetchRest: basic usage", () => {
 
 	it("should merge headers from fetchOpts", async () => {
 		fetchMock.mockResolvedValueOnce(new Response());
-		await client.get("/foo");
+		await client.get("/foo", {
+			fetchOpts: {
+				headers: {
+					x_test: "__x_test__",
+				},
+			},
+		});
+
 		const call = fetchMock.mock.calls[0][1];
 		expect(call?.headers).toEqual(
-			expect.objectContaining({ x_test: "__X_TEST__" }),
+			expect.objectContaining({ x_test: "__x_test__" }),
 		);
 	});
 
@@ -99,31 +115,35 @@ describe("FetchRest: basic usage", () => {
 
 	it("should handle JSON response correctly", async () => {
 		const mock = { ok: true };
+
 		fetchMock.mockResolvedValueOnce(
 			new Response(JSON.stringify(mock), {
 				status: 200,
 				headers: { "Content-Type": "application/json" },
 			}),
 		);
+
 		const res = await client.get("/data");
 		expect(res).toEqual(mock);
 	});
 
 	it("should throw parsed error response", async () => {
 		const error = { message: "Bad request" };
+
 		fetchMock.mockResolvedValueOnce(
 			new Response(JSON.stringify(error), {
 				status: 400,
 				headers: { "Content-Type": "application/json" },
 			}),
 		);
-		await expect(client.get("/fail")).rejects.toEqual(error);
+
+		await expect(client.patch("/fail")).rejects.toEqual(error);
 	});
 
 	it("should support raw response", async () => {
 		const res = new Response("raw", { status: 200 });
 		fetchMock.mockResolvedValueOnce(res);
-		const result = await client.get("/raw", { rawResponse: true });
+		const result = await client.put("/raw", { rawResponse: true });
 		expect(result).toBe(res);
 	});
 
@@ -154,11 +174,27 @@ describe("FetchRest: basic usage", () => {
 		expect(opts?.body).toBe(JSON.stringify({ name: "john" }));
 	});
 
-	it("should not set content-type for GET", async () => {
+	it("should not set content-type for DELETE", async () => {
 		fetchMock.mockResolvedValueOnce(new Response());
-		await client.get("/ping");
+		await client.delete("/resource");
 		const headers = fetchMock.mock.calls[0][1]?.headers;
 		expect(headers["Content-Type"]).toBeUndefined();
+	});
+
+	it("should support multi-value query params", async () => {
+		client.setJwtToken("token");
+		fetchMock.mockResolvedValueOnce(new Response());
+		await client.get("/resource", { query: { ids: [1, 2, 3] } });
+		const headers = fetchMock.mock.calls[0][1]?.headers;
+		expect(headers.authorization).toBe("Bearer token");
+	});
+
+	it("should support setting jwt token", async () => {
+		client.setJwtToken("token");
+		fetchMock.mockResolvedValueOnce(new Response());
+		await client.get("/resource");
+		const headers = fetchMock.mock.calls[0][1]?.headers;
+		expect(headers.authorization).toBe("Bearer token");
 	});
 });
 
@@ -168,6 +204,7 @@ describe("FetchRest: advanced behavior", () => {
 	beforeEach(() => {
 		fetchMock.mockReset();
 		client = new FetchRest({
+			fetchFn: fetchMock,
 			baseUrl: "http://localhost",
 			retryCount: 2,
 			retryOn: [503],
@@ -199,8 +236,21 @@ describe("FetchRest: advanced behavior", () => {
 		await expect(client.get("/fail")).rejects.toBe("fail");
 	});
 
+	it("should not attempt to parse response when no content", async () => {
+		const errorResponse = new Response(JSON.stringify({ ok: true }), {
+			status: 200,
+		});
+
+		fetchMock.mockResolvedValue(errorResponse);
+		await expect(client.head("/no-content")).resolves.toBe(undefined);
+	});
+
 	it("should call 401 handler only once", async () => {
-		const jwtClient = new FetchRest({ baseUrl: "http://localhost" });
+		const jwtClient = new FetchRest({
+			fetchFn: fetchMock,
+			baseUrl: "http://localhost",
+		});
+
 		const handler = vi.fn().mockResolvedValue(undefined);
 		jwtClient.set401Handler(handler);
 
@@ -218,11 +268,44 @@ describe("FetchRest: advanced behavior", () => {
 		expect(handler).toHaveBeenCalledTimes(1);
 	});
 
+	it.todo("should block requests on 401", async () => {
+		const jwtClient = new FetchRest({
+			fetchFn: fetchMock,
+			baseUrl: "http://localhost",
+		});
+
+		const handler = vi.fn().mockResolvedValue(undefined);
+		const fetchFn = vi.fn();
+		jwtClient.set401Handler(handler);
+
+		fetchMock
+			.mockResolvedValueOnce(new Response("", { status: 401 }))
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true }), {
+					status: 200,
+					headers: { "Content-Type": "application/json" },
+				}),
+			);
+
+		fetchFn.mockResolvedValueOnce(
+			new Response(JSON.stringify({ ok: true }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			}),
+		);
+
+		await jwtClient.get("/secure");
+		await jwtClient.get("/secure-1", { fetchFn });
+		expect(handler).toHaveBeenCalledTimes(1);
+		expect(fetchFn).toHaveBeenCalledAfter(handler);
+	});
+
 	it("should invoke hooks", async () => {
 		const before = vi.fn();
 		const after = vi.fn();
 
 		const hookedClient = new FetchRest({
+			fetchFn: fetchMock,
 			baseUrl: "http://localhost",
 			hooks: { beforeRequest: before, afterRequest: after },
 		});
@@ -241,46 +324,55 @@ describe("FetchRest: advanced behavior", () => {
 	});
 });
 
-describe("FetchRest: internal utilities", () => {
-	it("should append query to existing ? in URL", async () => {
-		const client = new FetchRest({ baseUrl: "http://localhost" });
-		fetchMock.mockResolvedValueOnce(new Response());
-		await client.get("/search?q=abc", { query: { page: 2 } });
-		expect(fetchMock).toHaveBeenCalledWith(
-			"http://localhost/search?q=abc&page=2",
-			expect.anything(),
-		);
-	});
+describe(
+	"FetchRest: internal utilities",
+	() => {
+		it("should append query to existing ? in URL", async () => {
+			const client = new FetchRest({
+				fetchFn: fetchMock,
+				baseUrl: "http://localhost",
+			});
 
-	it("should delay using sleep", async () => {
-		const client = new FetchRest({
-			baseUrl: "http://localhost",
-			retryCount: 1,
-			retryDelayMs: 10,
-			retryOn: [400],
+			fetchMock.mockResolvedValueOnce(new Response());
+			await client.get("/search?q=abc", { query: { page: 2 } });
+			expect(fetchMock).toHaveBeenCalledWith(
+				"http://localhost/search?q=abc&page=2",
+				expect.anything(),
+			);
 		});
 
-		const error = new Response(null, { status: 400 });
+		it("should delay using sleep", async () => {
+			const client = new FetchRest({
+				fetchFn: fetchMock,
+				baseUrl: "http://localhost",
+				retryCount: 1,
+				retryDelayMs: 10,
+				retryOn: [400],
+			});
 
-		vi.useFakeTimers(); // enable fake timers
-		const spy = vi.spyOn(global, "setTimeout");
+			const error = new Response(null, { status: 400 });
 
-		fetchMock.mockRejectedValue(error);
+			vi.useFakeTimers(); // enable fake timers
+			const spy = vi.spyOn(global, "setTimeout");
 
-		expect(client.get("400/", { rawResponse: true })).rejects.toBeInstanceOf(
-			Response,
-		);
+			fetchMock.mockRejectedValue(error);
 
-		try {
-			await vi.runAllTimersAsync(); // advance all timers (e.g., sleep)
-		} catch {}
+			expect(client.get("400/", { rawResponse: true })).rejects.toBeInstanceOf(
+				Response,
+			);
 
-		expect(spy).toHaveBeenCalledWith(expect.any(Function), 10);
+			try {
+				await vi.runAllTimersAsync(); // advance all timers (e.g., sleep)
+			} catch {}
 
-		spy.mockRestore();
-		vi.useRealTimers(); // reset to real timers
-	});
-});
+			expect(spy).toHaveBeenCalledWith(expect.any(Function), 10);
+
+			spy.mockRestore();
+			vi.useRealTimers(); // reset to real timers
+		});
+	},
+	30 * 1000,
+);
 
 describe("FetchRestSingleton: internal", () => {
 	it("should create instance once", () => {

@@ -1,6 +1,8 @@
-# Fetch REST
+# FetchREST
 
 `fetch` with some _REST_.
+
+> FetchREST is still under active development and you can expect rapid releases with potentially breaking changes.
 
 #### What it is?
 A convenient wrapper around the `fetch` API that provides type safety, class-based configuration, retry support, JWT token handling, and hooks for request lifecycle. It is mainly intended for SPA's for quick and safe API integration.
@@ -32,6 +34,7 @@ pnpm add fetrest
 - ✅ JWT Token: Supports attaching / replacing JWT Token
 - ✅ 401 Handler: Whenever a request fails with a 401 status code, it will automatically call specified handler and if success, retry the request with the JWT token attached.
 - ✅ Hooks (Basic yet): Support hooks for request lifecycle
+- ✅ `fetch` override: Override the `fetch` with custom function (i.e. to support testing / mocking). It can be specified client instance - or an individual requests.
 
 ## Usage:
 [Try it yourself](https://stackblitz.com/edit/stackblitz-starters-nht4hnmr?file=index.js)
@@ -59,6 +62,15 @@ api.set404Handler(() => {
 // use
 api.get<APIUser>('/users').then((response) => {
   console.log(response.data);
+});
+
+// use - override fetch function
+api.get('/users/:id', {
+  fetchFn: async (url: string) => { // mock function
+    return new Response(JSON.stringify({ id: 1 }), {
+      status: 200
+    })
+  }
 });
 ```
 
@@ -101,7 +113,6 @@ It is set directly by `FetchRest`, based on Request Method and Request Body (Pay
 
 ## Roadmap
 - [ ] Full Typed: Support full type safety for request body and response body
-- [ ] `fetch` override: Override the `fetch` function to do some mocking / testing
 - [ ] Hooks: Provide more robust hooks support
 - [ ] Debounce: Debounce requests to prevent unnecessary network calls
 - [ ] Support `429` handling
