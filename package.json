@@ -1,6 +1,6 @@
 {
   "name": "fetrest",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "`fetch` with some REST.",
   "type": "module",
   "source": "src/index.ts",
