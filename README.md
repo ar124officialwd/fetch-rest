@@ -109,7 +109,6 @@ It is set directly by `FetchRest`, based on Request Method and Request Body (Pay
 
 ## Roadmap
 - [ ] Full Typed: Support full type safety for request body and response body
-- [ ] Hooks: Provide more robust hooks support
 - [ ] Debounce: Debounce requests to prevent unnecessary network calls
 - [ ] Support `429` handling
 - [ ] Caching: Support caching of responses
