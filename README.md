@@ -37,7 +37,7 @@ pnpm add fetrest
 - ✅ `fetch` override: Override the `fetch` with custom function (i.e. to support testing / mocking). It can be specified client instance - or an individual requests.
 
 ## Usage:
-[Try it yourself](https://stackblitz.com/edit/stackblitz-starters-nht4hnmr?file=index.js)
+[Try it yourself](https://stackblitz.com/edit/stackblitz-starters-nht4hnmr?file=index.js) | [Try it yourself - ES Module](https://stackblitz.com/edit/stackblitz-starters-yfhwaypx?file=index.js)
 
 Following a quick and basic example to see how it works:
 ```typescript
