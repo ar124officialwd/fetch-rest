@@ -1,12 +1,22 @@
 {
   "name": "fetrest",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "`fetch` with some REST.",
-  "type": "module",
   "source": "src/index.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
-  "types": "dist/index.d.ts",
+  "types": "dist/types.d.ts",
+  "targets": {
+    "main": {
+      "optimize": true
+    },
+    "module": {
+      "optimize": true
+    },
+    "types": {
+      "optimize": true
+    }
+  },
   "scripts": {
     "test": "vitest",
     "coverage": "vitest run --coverage",

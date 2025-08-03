@@ -29,6 +29,7 @@ export type FROptions = {
 
 	/**
 	 * default fetch options.
+   *
 	 * Fetch options those will be passed to every request
 	 */
 	fetchOpts?: RequestInit;
@@ -41,7 +42,9 @@ export type FROptions = {
 
 	/**
 	 * number of retries in case of failure.
+   *
 	 * This bounds to {@link FROptions.retryOn} - if `retryOn` is not specified (or empty array), it will not retry at all
+   *
 	 * @default 0
 	 */
 	retryCount?: number;
@@ -67,6 +70,7 @@ export type FROptions = {
 
 	/**
 	 * hooks for request lifecyle.
+   *
 	 * NOTE: They're not interceptors
 	 */
 	hooks?: {
@@ -221,8 +225,7 @@ export class FetchRest {
 	): Promise<TResponse> {
 		const { method = "GET", params, query, headers = {}, body } = options;
 
-		const isAbsoluteUrl = /^https?:\/\//i.test(path);
-		const url = isAbsoluteUrl ? path : this.buildUrl(path, params, query);
+		const url = this.buildUrl(path, params, query);
 		const key = this.buildRequestKey(url, method, body);
 		const now = Date.now();
 
@@ -402,7 +405,9 @@ export class FetchRest {
 			string | string[] | number | number[] | boolean | undefined
 		>,
 	): string {
+		const isAbsoluteUrl = /^https?:\/\//i.test(path);
 		let fullPath = path;
+
 		if (params) {
 			for (const [key, value] of Object.entries(params)) {
 				fullPath = fullPath.replace(
@@ -427,7 +432,8 @@ export class FetchRest {
 			: "";
 
 		const separator = fullPath.includes("?") ? "&" : "?";
-		return `${this.baseUrl}${fullPath}${
+
+		return `${!isAbsoluteUrl ? this.baseUrl : ''}${fullPath}${
 			queryString ? separator + queryString : ""
 		}`;
 	}
